@@ -1,107 +1,26 @@
-# Лабораторная работа №1 — Docker + REST API
+# Lab 1 - REST API with Docker
 
-## Структура проекта
+## Description
+Two REST API services:
+- users-service (CRUD for users)
+- gateway-service (API Gateway)
 
-```
-lab1/
-├── users-service/       # Микросервис управления пользователями (порт 8001)
-│   ├── main.py
-│   ├── requirements.txt
-│   └── Dockerfile
-├── gateway-service/     # API-шлюз, делегирует в users-service (порт 8002)
-│   ├── main.py
-│   ├── requirements.txt
-│   └── Dockerfile
-├── test.sh              # Скрипт тестирования через curl
-└── README.md
-```
+## Technologies
+- Python (FastAPI)
+- Docker
 
-## Архитектура
+## Run manually
 
-```
-Клиент  ──►  Gateway Service :8002  ──►  Users Service :8001
-              (API Gateway)               (Business Logic)
-              
-              Оба контейнера в сети: lab1-network
-              Связь по имени контейнера (DNS Docker)
-```
-
-## Запуск (без Docker Compose — вручную)
-
-### 1. Создать изолированную сеть
-```bash
-docker network create lab1-network
-```
-
-### 2. Собрать образы
-```bash
-docker build -t users-service:1.0  ./users-service
+### Build
+docker build -t users-service:1.0 ./users-service
 docker build -t gateway-service:1.0 ./gateway-service
-```
 
-### 3. Запустить контейнеры
-```bash
-# Users Service
-docker run -d \
-  --name users-service \
-  --network lab1-network \
-  -p 8001:8001 \
-  users-service:1.0
+### Network
+docker network create lab1-network
 
-# Gateway Service (знает адрес users-service через переменную окружения)
-docker run -d \
-  --name gateway-service \
-  --network lab1-network \
-  -p 8002:8002 \
-  -e USERS_SERVICE_URL=http://users-service:8001 \
-  gateway-service:1.0
-```
+### Run
+docker run -d --name users-service --network lab1-network -p 8001:8000 users-service:1.0
+docker run -d --name gateway-service --network lab1-network -p 8000:8000 -e USERS_SERVICE_URL=http://users-service:8000 gateway-service:1.0
 
-### 4. Проверить статус контейнеров
-```bash
-docker ps
-docker logs users-service
-docker logs gateway-service
-```
-
-### 5. Запустить тесты
-```bash
-bash test.sh
-```
-
-## Ручное тестирование curl
-
-```bash
-# Health
-curl http://localhost:8001/health
-curl http://localhost:8002/health
-
-# Создать пользователя
-curl -X POST http://localhost:8001/users \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Alice","email":"alice@example.com"}'
-
-# Получить всех
-curl http://localhost:8001/users
-
-# Через Gateway
-curl -X POST http://localhost:8002/api/users \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Bob","email":"bob@example.com"}'
-
-curl http://localhost:8002/api/users
-```
-
-## Swagger UI
-
-- Users Service:  http://localhost:8001/docs
-- Gateway Service: http://localhost:8002/docs
-
-## Остановка и очистка
-
-```bash
-docker stop users-service gateway-service
-docker rm   users-service gateway-service
-docker network rm lab1-network
-docker rmi  users-service:1.0 gateway-service:1.0
-```
+## Swagger
+http://localhost:8000/docs
